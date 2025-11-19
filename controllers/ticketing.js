@@ -32,8 +32,14 @@ exports.getTicketings = async (req, res) => {
     let populate = req.user.role === 'admin' ? ['user', 'event'] : ['event'];
     
     const ticketings = await Ticketing.find(query)
-      .populate(populate)
-      .sort({ createdAt: -1 }); // Sort by newest first
+      .populate(populate);
+    
+    // Sort by eventDate (descending - latest events first)
+    ticketings.sort((a, b) => {
+      const dateA = new Date(a.event.eventDate);
+      const dateB = new Date(b.event.eventDate);
+      return dateB - dateA;
+    });
     
     res.status(200).json({
       success: true,
