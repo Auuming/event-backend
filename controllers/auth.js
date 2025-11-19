@@ -100,3 +100,96 @@ exports.logout = async (req, res, next) => {
     data: {},
   });
 };
+
+//@desc   Update user (name and tel only)
+//@route  PUT /api/v1/auth/me
+//@access Private
+exports.updateUser = async (req, res, next) => {
+  try {
+    const { name, tel } = req.body;
+    
+    // Only allow updating name and tel
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (tel !== undefined) updateFields.tel = tel;
+
+    // Validate that at least one field is provided
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide name or tel to update'
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      updateFields,
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+//@desc   Delete user
+//@route  DELETE /api/v1/auth/me
+//@access Private
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const Ticketing = require('../models/Ticketing');
+    const Event = require('../models/Event');
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get all ticketing reservations for this user
+    const ticketings = await Ticketing.find({ user: req.user.id });
+    
+    // Restore tickets to events
+    for (const ticketing of ticketings) {
+      const event = await Event.findById(ticketing.event);
+      if (event) {
+        event.availableTicket += ticketing.ticketAmount;
+        await event.save();
+      }
+    }
+
+    // Delete all ticketing reservations for this user
+    await Ticketing.deleteMany({ user: req.user.id });
+
+    // Delete the user
+    await User.findByIdAndDelete(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'User account and all associated reservations deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

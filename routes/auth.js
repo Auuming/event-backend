@@ -52,7 +52,7 @@
 */
 
 const express = require("express");
-const { register, login, getMe, logout } = require("../controllers/auth");
+const { register, login, getMe, logout, updateUser, deleteUser } = require("../controllers/auth");
 const router = express.Router();
 const { protect } = require("../middleware/auth");
 
@@ -179,7 +179,72 @@ router.get("/logout", protect, logout);
 *         description: Not authorized
 *       500:
 *         description: Some server error
+*   put:
+*     security:
+*       - bearerAuth: []
+*     summary: Update current user profile (name and tel only)
+*     tags: [Authentication]
+*     requestBody:
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             type: object
+*             properties:
+*               name:
+*                 type: string
+*                 description: Updated name
+*               tel:
+*                 type: string
+*                 description: Updated telephone number
+*     responses:
+*       200:
+*         description: User updated successfully
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 success:
+*                   type: boolean
+*                 data:
+*                   $ref: '#/components/schemas/User'
+*       400:
+*         description: Bad request - no fields provided
+*       401:
+*         description: Not authorized
+*       404:
+*         description: User not found
+*       500:
+*         description: Some server error
+*   delete:
+*     security:
+*       - bearerAuth: []
+*     summary: Delete current user account
+*     description: Deletes the current user's account and all associated ticketing reservations. Tickets are restored to events.
+*     tags: [Authentication]
+*     responses:
+*       200:
+*         description: User account deleted successfully
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 success:
+*                   type: boolean
+*                 message:
+*                   type: string
+*                   example: User account and all associated reservations deleted successfully
+*       401:
+*         description: Not authorized
+*       404:
+*         description: User not found
+*       500:
+*         description: Some server error
 */
 router.get("/me", protect, getMe);
+router.put("/me", protect, updateUser);
+router.delete("/me", protect, deleteUser);
 
 module.exports = router;
