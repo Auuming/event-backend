@@ -6,7 +6,7 @@ const dayjs = require('dayjs');
 // @route   GET /api/v1/events
 // @access  Public
 exports.getEvents = async (req, res) => {
-  const events = await Event.find();
+  const events = await Event.find().sort({ eventDate: -1 }); // Sort by eventDate descending (latest first)
   res.json({
     success: true,
     count: events.length,
