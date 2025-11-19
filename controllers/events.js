@@ -1,4 +1,5 @@
 const Event = require('../models/Event');
+const Ticketing = require('../models/Ticketing');
 const dayjs = require('dayjs');
 
 // @desc    Get all events
@@ -75,7 +76,30 @@ exports.updateEvent = async (req, res) => {
 // @route   DELETE /api/v1/events/:id
 // @access  Admin
 exports.deleteEvent = async (req, res) => {
-  const event = await Event.findByIdAndDelete(req.params.id);
-  if (!event) return res.status(404).json({ message: 'Event not found' });
-  res.json({ message: 'Event deleted' });
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Event not found' 
+      });
+    }
+
+    // Delete all ticketing reservations for this event
+    await Ticketing.deleteMany({ event: req.params.id });
+
+    // Delete the event
+    await Event.findByIdAndDelete(req.params.id);
+
+    res.json({ 
+      success: true,
+      message: 'Event and all associated reservations deleted successfully' 
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
